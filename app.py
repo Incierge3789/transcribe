@@ -36,7 +36,7 @@ CHUNK = 1024
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100
-RECORD_SECONDS = 5  # 録音間隔
+RECORD_SECONDS = 10  # 録音間隔
 WAVE_OUTPUT_FILENAME = "output.wav"
 SAVE_DIR = "saved_data"  # 保存ディレクトリ
 
