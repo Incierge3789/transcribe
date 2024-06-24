@@ -281,4 +281,5 @@ if __name__ == '__main__':
     transcribe_thread.start()
     summarize_thread.start()
 
-    socketio.run(app, host='0.0.0.0', port=3001)
+    port = int(os.environ.get('PORT', 5000))  # デフォルトのポートを5000に設定
+    socketio.run(app, host='0.0.0.0', port=port)
