@@ -40,7 +40,7 @@ const History = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    axios.get('http://localhost:3001/history')
+    axios.get(`${process.env.REACT_APP_API_URL}/history`)
       .then((response) => {
         if (response.data.files) {
           setFiles(response.data.files);

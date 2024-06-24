@@ -57,7 +57,7 @@ const Button = styled.button`
   border-radius: 10px;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  margin: 0 10px; /* ボタン間のスペース */
+  Margin: 0 10px; /* ボタン間のスペース */
 
   &:hover {
     background-color: #005bb5;
@@ -74,7 +74,7 @@ const Settings = ({ onSave }) => {
   };
 
   const startRecording = () => {
-    axios.post('http://localhost:3001/start_recording')
+    axios.post(`${process.env.REACT_APP_API_URL}/start_recording`)
       .then(() => {
         toast.success('録音を開始しました');
       })
@@ -85,7 +85,7 @@ const Settings = ({ onSave }) => {
   };
 
   const stopRecording = () => {
-    axios.post('http://localhost:3001/stop_recording')
+    axios.post(`${process.env.REACT_APP_API_URL}/stop_recording`)
       .then(() => {
         toast.success('録音を停止しました');
       })

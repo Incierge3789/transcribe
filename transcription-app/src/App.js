@@ -1,4 +1,3 @@
-// src/App.js
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import io from 'socket.io-client';
@@ -33,7 +32,7 @@ const Button = styled.button`
   border-radius: 10px;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  margin: 0 10px; /* ボタン間のスペース */
+  Margin: 0 10px; /* ボタン間のスペース */
 
   &:hover {
     background-color: #005bb5;
@@ -49,7 +48,7 @@ const App = () => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);  
 
   useEffect(() => {
-    const socket = io('http://localhost:3001');
+    const socket = io(process.env.REACT_APP_API_URL);
 
     socket.on('connect', () => {
       console.log('Connected to server');
@@ -94,7 +93,7 @@ const App = () => {
   };
 
   const startRecording = () => {
-    axios.post('http://localhost:3001/start_recording')
+    axios.post(`${process.env.REACT_APP_API_URL}/start_recording`)
       .then(() => {
         toast.success('録音を開始しました');
       })
@@ -105,7 +104,7 @@ const App = () => {
   };
 
   const stopRecording = () => {
-    axios.post('http://localhost:3001/stop_recording')
+    axios.post(`${process.env.REACT_APP_API_URL}/stop_recording`)
       .then(() => {
         toast.success('録音を停止しました');
       })
