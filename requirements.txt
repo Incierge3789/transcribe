@@ -214,7 +214,7 @@ statsmodels==0.13.2
 sympy==1.10.1
 tabulate==0.8.10
 tblib==1.7.0
-tenacity==8.0.1
+tenacity>=8.1.0,<9.0.0
 tensorboard==2.10.1
 tensorboard-data-server==0.6.1
 tensorboard-plugin-wit==1.8.1
