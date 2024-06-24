@@ -98,8 +98,6 @@ jupyterlab==3.4.6
 jupyterlab-pygments==0.2.2
 jupyterlab-widgets==1.1.1
 kiwisolver==1.4.4
-langchain==0.0.193
-llama-index==0.10.46
 llvmlite==0.38.0
 locket==1.0.0
 lxml==4.9.1
