@@ -13,6 +13,9 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from collections import Counter
 from flask_cors import CORS
+from flask import Flask, render_template
+
+app = Flask(__name__, static_folder='static')
 
 # NLTKのデータセットをダウンロード
 nltk.download('punkt')
