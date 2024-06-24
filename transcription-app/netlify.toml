@@ -1,0 +1,8 @@
+[build]
+  base = "transcription-app"
+  publish = "transcription-app/build"
+  command = "npm run build"
+  functions = "netlify/functions"
+
+[context.production.environment]
+  OPENAI_API_KEY = "YOUR_ENVIRONMENT_VARIABLE"
