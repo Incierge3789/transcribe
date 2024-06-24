@@ -1,8 +1,5 @@
 [build]
   base = "transcription-app"
-  publish = "transcription-app/build"
+  publish = "build"  # 正しいビルド出力ディレクトリを指定
   command = "npm run build"
   functions = "netlify/functions"
-
-[context.production.environment]
-  OPENAI_API_KEY = "YOUR_ENVIRONMENT_VARIABLE"
