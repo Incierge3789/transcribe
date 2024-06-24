@@ -112,7 +112,7 @@ kiwisolver==1.4.4
 langchain==0.0.193
 lightgbm==3.3.2
 llama-index==0.10.46
-llvmlite==0.38.0
+llvmlite==0.39.0
 locket==1.0.0
 lxml==4.9.1
 Mako==1.2.2
