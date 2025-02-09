@@ -131,3 +131,9 @@ dist
 
 # Local Netlify folder
 .netlify
+output.wav
+app.log
+saved_files/
+__pycache__/
+*.pyc
+*.wav
