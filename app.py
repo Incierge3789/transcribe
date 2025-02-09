@@ -1,3 +1,4 @@
+import logging 
 import openai
 import pyaudio
 import wave
@@ -6,37 +7,53 @@ import queue
 import os
 import time
 import nltk
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_socketio import SocketIO, emit
 from janome.tokenizer import Tokenizer
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from collections import Counter
 from flask_cors import CORS
-from flask import Flask, render_template
+from io import BytesIO
 
-app = Flask(__name__, static_folder='static')
 
 # NLTKのデータセットをダウンロード
 nltk.download('punkt')
 nltk.download('stopwords')
 
+# ログ設定
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s',
+                    handlers=[logging.FileHandler("app.log"),
+                              logging.StreamHandler()])
 
 # Flaskアプリの設定
-app = Flask(__name__)
+app = Flask(__name__, static_folder='transcription-app/build')
 app.config['SECRET_KEY'] = 'secret!'
-CORS(app)  # CORSを有効にする
-socketio = SocketIO(app, cors_allowed_origins="*")
+app.config['DEBUG'] = True  # デバッグモードを有効にする
+CORS(app, resources={r"/socket.io/*": {"origins": "*"}})
+
+socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
 
 # 新しいAPIクライアントのインスタンスを作成
 client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+# CORSをサポートするためのbefore_request関数
+@app.before_request
+def before_request_func():
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'OK'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        return response
+
 
 # 音声録音設定
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100
-RECORD_SECONDS = 10  # 録音間隔
+RECORD_SECONDS = 5  # 録音間隔
 WAVE_OUTPUT_FILENAME = "output.wav"
 SAVE_DIR = "saved_data"  # 保存ディレクトリ
 
@@ -72,11 +89,12 @@ def record_audio():
                         rate=RATE,
                         input=True,
                         frames_per_buffer=CHUNK * 2)  # バッファサイズを増加
+        logging.info("Audio stream opened successfully")
     except Exception as e:
-        print(f"Error opening stream: {e}")
+        logging.error(f"Error opening stream: {e}")
         return
 
-    print("Recording...")
+    logging.info("Recording...")
 
     while True:
         try:
@@ -89,16 +107,17 @@ def record_audio():
             else:
                 time.sleep(0.1)  # 短い遅延を入れてCPU使用率を下げる
         except Exception as e:
-            print(f"Error in record_audio: {e}")
+            logging.error(f"Error in record_audio: {e}")
             break  # ストリームが閉鎖された場合、ループを終了
 
     try:
         stream.stop_stream()
         stream.close()
+        logging.info("Audio stream closed successfully")
     except Exception as e:
-        print(f"Error closing stream: {e}")
+        logging.error(f"Error closing stream: {e}")
 
-# 文字起こしを行うスレッド
+# 文字起こしを行うスレッド（ローカル録音データ用）
 def transcribe_audio():
     while True:
         try:
@@ -111,12 +130,13 @@ def transcribe_audio():
             wf.close()
 
             with open(WAVE_OUTPUT_FILENAME, "rb") as audio_file:
+                logging.info("Sending audio file for transcription")
                 transcription = client.audio.transcriptions.create(
                     model="whisper-1",
                     file=audio_file,
                     response_format="text"
                 )
-                print("Transcription:", transcription)  # レスポンス全体を出力して確認する
+                print("Raw Response:", transcription)  # レスポンス全体を出力して確認する
 
                 # transcriptionが文字列の場合、そのまま使用
                 text_queue.put(transcription)
@@ -149,6 +169,7 @@ def summarize_and_respond():
                         {"role": "user", "content": accumulated_summary + " " + accumulated_text}
                     ]
                 )
+                print("Summary Raw Response:", summary_response)  # レスポンス全体を出力して確認する
                 accumulated_summary = summary_response.choices[0].message.content
                 print("Updated Summary:", accumulated_summary)
 
@@ -160,6 +181,7 @@ def summarize_and_respond():
                         {"role": "user", "content": accumulated_summary}
                     ]
                 )
+                print("Response Raw Response:", response)  # レスポンス全体を出力して確認する
                 response_content = response.choices[0].message.content
                 print("Generated Response:", response_content)
 
@@ -229,9 +251,19 @@ def save_data(transcription, summary, response):
             file.write(f"{key.capitalize()}:\n{value}\n\n")
     print(f"Data saved to {file_path}")
 
+
 @app.route('/')
+def serve():
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:path>')
+def static_proxy(path):
+    return send_from_directory(app.static_folder, path)
+
+@app.route('/old_index')
 def index():
     return render_template('index.html')
+
 
 # 設定更新エンドポイント
 @socketio.on('updateSettings')
@@ -266,23 +298,34 @@ def start_recording():
     global recording_active
     recording_active = True
     print("Recording started")  # ログに出力
-    return jsonify({'status': 'Recording started'})
+    response = jsonify({'status': 'Recording started'})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 @app.route('/stop_recording', methods=['POST'])
 def stop_recording():
     global recording_active
     recording_active = False
     print("Recording stopped")  # ログに出力
-    return jsonify({'status': 'Recording stopped'})
+    response = jsonify({'status': 'Recording stopped'})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 if __name__ == '__main__':
-    record_thread = threading.Thread(target=record_audio)
-    transcribe_thread = threading.Thread(target=transcribe_audio)
-    summarize_thread = threading.Thread(target=summarize_and_respond)
+    try:
+        # 各スレッドを開始
+        record_thread = threading.Thread(target=record_audio)
+        transcribe_thread = threading.Thread(target=transcribe_audio)
+        summarize_thread = threading.Thread(target=summarize_and_respond)
 
-    record_thread.start()
-    transcribe_thread.start()
-    summarize_thread.start()
+        record_thread.start()
+        transcribe_thread.start()
+        summarize_thread.start()
 
-    port = int(os.environ.get('PORT', 5000))  # デフォルトのポートを5000に設定
-    socketio.run(app, host='0.0.0.0', port=port)
+        # Flaskサーバーを起動
+        port = int(os.environ.get('PORT', 8080)) 
+        logging.info(f"Starting Flask server on port {port}")
+        # Flaskの開発サーバーを使用
+        socketio.run(app, host='0.0.0.0', port=port, debug=True)
+    except Exception as e:
+        logging.error(f"Error in main: {e}")               

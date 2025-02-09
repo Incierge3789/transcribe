@@ -1,5 +1,13 @@
 [build]
-  base = "transcription-app"
+  base = "transcription-app"  # プロジェクトのベースディレクトリを指定
   publish = "build"  # 正しいビルド出力ディレクトリを指定
   command = "npm run build"
   functions = "netlify/functions"
+
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

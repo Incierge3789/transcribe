@@ -1,14 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import io from 'socket.io-client';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { GlobalStyle, Container, Header, Nav, NavLink, Title, Content, SummarySection, ResponseSection, SectionTitle, Text, KeyPoints, RealTimeSection, SettingsContainer } from './styles';
 import Settings from './Settings';
-import History from './History';  
-import ViewHistory from './ViewHistory';  
+import History from './History';
+import ViewHistory from './ViewHistory';
 import styled from 'styled-components';
 import axios from 'axios';
+
+console.log("API URL:", process.env.REACT_APP_API_URL);
 
 const FixedBottom = styled.div`
   position: fixed;
@@ -32,7 +34,7 @@ const Button = styled.button`
   border-radius: 10px;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  Margin: 0 10px; /* ボタン間のスペース */
+  margin: 0 10px;
 
   &:hover {
     background-color: #005bb5;
@@ -45,34 +47,43 @@ const App = () => {
   const [keyPoints, setKeyPoints] = useState([]);
   const [response, setResponse] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);  
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const socketRef = useRef(null);
 
   useEffect(() => {
-    const socket = io(process.env.REACT_APP_API_URL);
+    const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:8080', {
+      transports: ['polling', 'websocket'],
+    });
 
     socket.on('connect', () => {
       console.log('Connected to server');
     });
 
     socket.on('transcription', (data) => {
+      console.log('Received transcription:', data.data);
       setTranscription((prev) => `${prev}\n${data.data}`);
     });
 
     socket.on('summary', (data) => {
+      console.log('Received summary:', data.data);
       setSummary(data.data);
     });
 
     socket.on('response', (data) => {
+      console.log('Received response:', data.data);
       setResponse(data.data);
     });
 
     socket.on('keyPoints', (data) => {
+      console.log('Received key points:', data.data);
       setKeyPoints(data.data);
     });
 
     socket.on('disconnect', () => {
       console.log('Disconnected from server');
     });
+
+    socketRef.current = socket;
 
     return () => {
       socket.disconnect();
@@ -89,11 +100,10 @@ const App = () => {
 
   const handleSaveSettings = (settings) => {
     console.log('Settings saved:', settings);
-    // ここで設定を保存する処理を追加
   };
 
   const startRecording = () => {
-    axios.post(`${process.env.REACT_APP_API_URL}/start_recording`)
+    axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/start_recording`)
       .then(() => {
         toast.success('録音を開始しました');
       })
@@ -104,7 +114,7 @@ const App = () => {
   };
 
   const stopRecording = () => {
-    axios.post(`${process.env.REACT_APP_API_URL}/stop_recording`)
+    axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:8080'}/stop_recording`)
       .then(() => {
         toast.success('録音を停止しました');
       })
@@ -123,7 +133,7 @@ const App = () => {
           <Nav>
             <NavLink as={Link} to="/">ホーム</NavLink>
             <NavLink as={Link} onClick={toggleSettings}>設定</NavLink>
-            <NavLink as={Link} onClick={toggleHistory}>履歴</NavLink> {/* 履歴リンクの更新 */}
+            <NavLink as={Link} onClick={toggleHistory}>履歴</NavLink>
           </Nav>
         </Header>
         {isSettingsOpen && (
@@ -132,7 +142,7 @@ const App = () => {
           </SettingsContainer>
         )}
         {isHistoryOpen && (
-          <SettingsContainer>  {/* 同じスタイルを使用 */}
+          <SettingsContainer>
             <History onClose={toggleHistory} />
           </SettingsContainer>
         )}
@@ -157,7 +167,7 @@ const App = () => {
         </RealTimeSection>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/history/:filename" element={<ViewHistory />} />  
+          <Route path="/history/:filename" element={<ViewHistory />} />
         </Routes>
         <FixedBottom>
           <Button onClick={startRecording}>録音開始</Button>
@@ -169,6 +179,11 @@ const App = () => {
   );
 };
 
-const Home = () => <div />;
+const Home = () => (
+  <div>
+    <h2>ホームページ</h2>
+    <p>ここにホームページのコンテンツを追加します。</p>
+  </div>
+);
 
 export default App;
